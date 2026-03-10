@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IronLog">
+<meta name="theme-color" content="#0a0a0f">
+<title>IronLog</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxODAgMTgwIj48cmVjdCB3aWR0aD0iMTgwIiBoZWlnaHQ9IjE4MCIgcng9IjQwIiBmaWxsPSIjNjM2NmYxIi8+PHJlY3QgeD0iMjUiIHk9IjY1IiB3aWR0aD0iMjgiIGhlaWdodD0iNTAiIHJ4PSI2IiBmaWxsPSIjZmZmIiBvcGFjaXR5PSIuOSIvPjxyZWN0IHg9IjEyNyIgeT0iNjUiIHdpZHRoPSIyOCIgaGVpZ2h0PSI1MCIgcng9IjYiIGZpbGw9IiNmZmYiIG9wYWNpdHk9Ii45Ii8+PHJlY3QgeD0iNTMiIHk9IjUwIiB3aWR0aD0iMjIiIGhlaWdodD0iODAiIHJ4PSI2IiBmaWxsPSIjZmZmIi8+PHJlY3QgeD0iMTA1IiB5PSI1MCIgd2lkdGg9IjIyIiBoZWlnaHQ9IjgwIiByeD0iNiIgZmlsbD0iI2ZmZiIvPjxyZWN0IHg9Ijc1IiB5PSI3OCIgd2lkdGg9IjMwIiBoZWlnaHQ9IjI0IiByeD0iNSIgZmlsbD0iI2ZmZiIgb3BhY2l0eT0iLjg1Ii8+PC9zdmc+">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { background: #0a0a0f; overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  input, select, button { font-family: inherit; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+  option { background: #1a1a2e; color: #f0f0f0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+
+const EXERCISES = [
+  { id: "ab_crunch", name: "Abdominal Crunch", muscle: "Core", startWeight: 40, goalWeight: 70 },
+  { id: "lower_back", name: "Lower Back", muscle: "Core", startWeight: 80, goalWeight: 130 },
+  { id: "bicep_curl", name: "Biceps Curl", muscle: "Arms", startWeight: 30, goalWeight: 50 },
+  { id: "tricep_press", name: "Triceps Press", muscle: "Arms", startWeight: 60, goalWeight: 100 },
+  { id: "vert_traction", name: "Vertical Traction", muscle: "Back", startWeight: 80, goalWeight: 130 },
+  { id: "shoulder_press", name: "Shoulder Press", muscle: "Shoulders", startWeight: 10, goalWeight: 25 },
+  { id: "abductor_out", name: "Abductor (Out)", muscle: "Legs", startWeight: 65, goalWeight: 100 },
+  { id: "adductor_in", name: "Adductor (In)", muscle: "Legs", startWeight: 40, goalWeight: 70 },
+  { id: "chest_press", name: "Chest Press", muscle: "Chest", startWeight: 30, goalWeight: 55 },
+  { id: "leg_press", name: "Leg Press", muscle: "Legs", startWeight: 100, goalWeight: 180 },
+];
+
+const DIFFICULTY = [
+  { val: 1, label: "Too Easy", emoji: "😴", color: "#22c55e" },
+  { val: 2, label: "Easy", emoji: "😊", color: "#84cc16" },
+  { val: 3, label: "Just Right", emoji: "💪", color: "#eab308" },
+  { val: 4, label: "Hard", emoji: "😤", color: "#f97316" },
+  { val: 5, label: "Failed", emoji: "🔥", color: "#ef4444" },
+];
+
+const SETS_DEFAULT = 3;
+const REPS_DEFAULT = 12;
+const STORAGE_KEY = "ironlog-v2";
+
+const STRETCHES = {
+  pre: [
+    { name: "Wrist Circles", area: "Arms", duration: "30 sec each direction", desc: "Extend arms, slowly rotate wrists in circles. Loosens forearms and wrists before curls and presses." },
+    { name: "Cross-Body Shoulder Stretch", area: "Arms/Shoulders", duration: "20 sec each side", desc: "Pull one arm across your chest with the other hand. Hold gently — don't force it." },
+    { name: "Overhead Triceps Stretch", area: "Arms", duration: "20 sec each side", desc: "Raise one arm overhead, bend at elbow, gently push elbow back with other hand." },
+    { name: "Biceps Wall Stretch", area: "Arms", duration: "20 sec each side", desc: "Place palm flat on a wall, fingers pointing back. Slowly turn body away until you feel a stretch in your bicep." },
+    { name: "Arm Swings", area: "Arms/Chest", duration: "20 reps", desc: "Swing both arms forward and back, then cross them in front of your chest. Gets blood flowing." },
+    { name: "Cat-Cow Stretch", area: "Back/Core", duration: "30 sec", desc: "On hands and knees, alternate arching and rounding your back. Great for lower back before those machines." },
+    { name: "Standing Quad Stretch", area: "Legs", duration: "20 sec each side", desc: "Stand on one leg, pull other foot to your glute. Hold a wall for balance if needed." },
+    { name: "Hip Circles", area: "Legs/Hips", duration: "10 each direction", desc: "Hands on hips, make big circles. Opens up hips before leg press and abductor/adductor." },
+  ],
+  post: [
+    { name: "Doorway Bicep Stretch", area: "Arms", duration: "30 sec each side", desc: "Grab a doorframe or machine frame at shoulder height, palm facing up. Step forward and turn away gently." },
+    { name: "Overhead Triceps Stretch", area: "Arms", duration: "30 sec each side", desc: "Same as pre-workout but hold longer. Your muscles are warm now so you can go a bit deeper." },
+    { name: "Forearm Stretch", area: "Arms", duration: "20 sec each side", desc: "Extend arm with palm up, gently pull fingers back with other hand. Then flip and repeat palm down." },
+    { name: "Chest Doorway Stretch", area: "Chest/Arms", duration: "30 sec", desc: "Place forearms on both sides of a doorframe, step through gently. Opens up chest and front of arms." },
+    { name: "Seated Forward Fold", area: "Back/Legs", duration: "30 sec", desc: "Sit on a bench, legs extended. Reach toward toes. Don't bounce — just breathe and relax into it." },
+  ],
+};
+
+const defaultData = () => ({
+  workouts: [], spinSessions: [],
+  phase: {
+    name: "Phase 1 — Foundation",
+    startDate: new Date().toISOString(),
+    endDate: new Date(Date.now() + 180 * 86400000).toISOString(),
+    goals: EXERCISES.map((ex) => ({ exerciseId: ex.id, startWeight: ex.startWeight, goalWeight: ex.goalWeight })),
+  },
+});
+
+const loadData = async () => {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { const d = JSON.parse(raw); if (!d.phase) d.phase = defaultData().phase; return d; }
+    return defaultData();
+  } catch { return defaultData(); }
+};
+const saveData = async (data) => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { console.error("Save failed:", e); } };
+
+const fmt = (d) => new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+const fmtFull = (d) => new Date(d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+const daysBetween = (a, b) => Math.round(Math.abs(new Date(b) - new Date(a)) / 86400000);
+const isThisWeek = (d) => { const now = new Date(), s = new Date(now); s.setDate(now.getDate() - now.getDay()); s.setHours(0,0,0,0); return new Date(d) >= s; };
+const isThisMonth = (d) => { const now = new Date(), dd = new Date(d); return dd.getMonth() === now.getMonth() && dd.getFullYear() === now.getFullYear(); };
+const isThisYear = (d) => new Date(d).getFullYear() === new Date().getFullYear();
+
+const getCurrentWeight = (workouts, exerciseId, fallback) => {
+  const latest = [...workouts].reverse().find((w) => w.entries?.some((e) => e.exerciseId === exerciseId));
+  return latest?.entries?.find((e) => e.exerciseId === exerciseId)?.weight || fallback;
+};
+
+const getLastDifficulty = (workouts, exerciseId) => {
+  const latest = [...workouts].reverse().find((w) => w.entries?.some((e) => e.exerciseId === exerciseId));
+  return latest?.entries?.find((e) => e.exerciseId === exerciseId)?.difficulty || null;
+};
+
+const getRecentDifficulties = (workouts, exerciseId, n = 3) => {
+  return [...workouts].reverse()
+    .filter((w) => w.entries?.some((e) => e.exerciseId === exerciseId && e.difficulty))
+    .slice(0, n)
+    .map((w) => w.entries.find((e) => e.exerciseId === exerciseId))
+    .filter(Boolean);
+};
+
+// ─── Smart Coach (offline, rules-based) ──────────────────────────────────────
+const getSmartCoaching = (data, context = "start_workout") => {
+  const { workouts, phase } = data;
+  if (workouts.length === 0 && context === "start_workout") {
+    return "Welcome to your first workout! Start with the weights your trainer recommended. Focus on good form — the weight doesn't matter nearly as much as doing each rep correctly. Rate each exercise honestly on difficulty so I can start making smart recommendations for next time.";
+  }
+
+  const last = workouts[workouts.length - 1];
+  const daysSince = last ? daysBetween(last.date, new Date()) : null;
+  const daysLeft = phase ? Math.max(0, daysBetween(new Date(), phase.endDate)) : 180;
+  const daysIn = phase ? daysBetween(phase.startDate, new Date()) : 0;
+
+  const analysis = EXERCISES.map((ex) => {
+    const current = getCurrentWeight(workouts, ex.id, ex.startWeight);
+    const recent = getRecentDifficulties(workouts, ex.id, 3);
+    const avgDiff = recent.length > 0 ? recent.reduce((s, e) => s + e.difficulty, 0) / recent.length : 3;
+    const goal = phase?.goals?.find((g) => g.exerciseId === ex.id);
+    const progress = goal && goal.goalWeight > goal.startWeight
+      ? ((current - goal.startWeight) / (goal.goalWeight - goal.startWeight)) * 100 : 0;
+    const hadFailure = recent.some((e) => e.didntFinish);
+    return { ex, current, avgDiff, progress: Math.min(100, Math.max(0, progress)), goal, hadFailure, recent };
+  });
+
+  const needsIncrease = analysis.filter((a) => a.avgDiff <= 2 && a.recent.length >= 2);
+  const struggling = analysis.filter((a) => a.avgDiff >= 4 || a.hadFailure);
+  const onTrack = analysis.filter((a) => a.avgDiff > 2 && a.avgDiff < 4 && !a.hadFailure);
+  const avgProgress = analysis.reduce((s, a) => s + a.progress, 0) / analysis.length;
+  const timeProgress = daysIn / (daysIn + daysLeft) * 100;
+
+  if (context === "start_workout") {
+    let msg = "";
+    if (daysSince === 0) msg += "Back again today! Nice dedication. Consider going a bit lighter or focusing on a different muscle group than last time. ";
+    else if (daysSince === 1) msg += "Great consistency! ";
+    else if (daysSince && daysSince <= 3) msg += `${daysSince} days rest — perfect recovery time. `;
+    else if (daysSince && daysSince <= 7) msg += `Welcome back! ${daysSince} days since your last session. You're ready to go. `;
+    else if (daysSince && daysSince > 7) msg += `It's been ${daysSince} days — no worries, just ease back in. Consider dropping 5-10 lbs on each machine today and building back up. `;
+
+    if (needsIncrease.length > 0) {
+      const names = needsIncrease.slice(0, 3).map((a) => `${a.ex.name} (try ${a.current + 5} lb)`);
+      msg += `Ready to go up on: ${names.join(", ")}. `;
+    }
+    if (struggling.length > 0) {
+      const names = struggling.slice(0, 2).map((a) => a.ex.name);
+      msg += `Take it steady on ${names.join(" and ")} — stay at current weight until it feels more comfortable. `;
+    }
+    if (workouts.length > 0 && workouts.length % 4 === 0) {
+      const muscles = ["Legs", "Arms", "Core"];
+      const focus = muscles[workouts.length % 3];
+      const focusExercises = analysis.filter((a) => a.ex.muscle === focus).map((a) => a.ex.name);
+      if (focusExercises.length > 0) {
+        msg += `Mix it up today: try doing ${focusExercises.join(", ")} first while you're fresh, then finish with the rest. `;
+      }
+    }
+    return msg.trim();
+  }
+
+  if (context === "on_demand") {
+    let msg = "";
+    if (avgProgress >= timeProgress) msg += `You're ahead of pace on your 6-month goals (${Math.round(avgProgress)}% strength progress vs. ${Math.round(timeProgress)}% time elapsed). Keep it up!\n\n`;
+    else msg += `You're a bit behind pace (${Math.round(avgProgress)}% progress, ${Math.round(timeProgress)}% through the phase), but that's normal — progress isn't linear.\n\n`;
+
+    msg += "Here's what I'm seeing:\n\n";
+    if (needsIncrease.length > 0) {
+      msg += `⬆️ Ready to increase weight: ${needsIncrease.map((a) => `${a.ex.name} (${a.current} → ${a.current + 5} lb)`).join(", ")}\n\n`;
+    }
+    if (struggling.length > 0) {
+      msg += `⚠️ Needs more time at current weight: ${struggling.map((a) => `${a.ex.name} (${a.current} lb)`).join(", ")}\n\n`;
+    }
+    if (onTrack.length > 0) {
+      msg += `✅ Right on track: ${onTrack.map((a) => `${a.ex.name}`).join(", ")}\n\n`;
+    }
+
+    const muscleWork = {};
+    workouts.slice(-10).forEach((w) => (w.entries || []).forEach((e) => {
+      const ex = EXERCISES.find((x) => x.id === e.exerciseId);
+      if (ex) muscleWork[ex.muscle] = (muscleWork[ex.muscle] || 0) + 1;
+    }));
+    const weakest = Object.entries(muscleWork).sort((a, b) => a[1] - b[1])[0];
+    if (weakest) msg += `💡 Tip: Your ${weakest[0]} muscles have gotten the least attention recently. Try putting those exercises first in your next session when you have the most energy.`;
+
+    return msg.trim();
+  }
+
+  if (context === "next_session") {
+    let tips = [];
+    needsIncrease.forEach((a) => tips.push(`${a.ex.name}: bump up to ${a.current + 5} lb`));
+    struggling.forEach((a) => tips.push(`${a.ex.name}: stay at ${a.current} lb, focus on completing all reps`));
+
+    if (tips.length === 0) return "Looking good — keep doing what you're doing at your current weights next session.";
+
+    let msg = "For next time:\n";
+    tips.forEach((t) => msg += `• ${t}\n`);
+
+    if (daysSince === 0) msg += "\nSince you just worked out today, try to get at least one rest day before your next session.";
+    return msg.trim();
+  }
+
+  return "Keep up the great work!";
+};
+
+// ─── Components ──────────────────────────────────────────────────────────────
+
+function DifficultyPicker({ value, onChange }) {
+  return (
+    <div style={{ display: "flex", gap: 4 }}>
+      {DIFFICULTY.map((d) => (
+        <button key={d.val} onClick={() => onChange(d.val)} style={{
+          width: 52, padding: "6px 2px 4px", borderRadius: 10, border: "none",
+          background: value === d.val ? d.color : "rgba(255,255,255,0.06)",
+          color: value === d.val ? "#fff" : "rgba(255,255,255,0.4)",
+          cursor: "pointer", transition: "all 0.2s",
+          transform: value === d.val ? "scale(1.08)" : "scale(1)",
+          display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
+        }} title={d.label}>
+          <span style={{ fontSize: 17 }}>{d.emoji}</span>
+          <span style={{ fontSize: 8, fontWeight: 600, letterSpacing: "0.02em", opacity: value === d.val ? 1 : 0.7 }}>{d.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ExerciseCard({ exercise, entry, onChange, isComplete, goalWeight, currentBest }) {
+  const update = (field, val) => {
+    const updated = { ...entry, exerciseId: exercise.id, [field]: val };
+    onChange(updated);
+  };
+
+  const toggleDidntFinish = () => {
+    if (entry?.didntFinish) {
+      onChange({ ...entry, exerciseId: exercise.id, didntFinish: false, stoppedAtSet: "", stoppedAtRep: "" });
+    } else {
+      onChange({ ...entry, exerciseId: exercise.id, didntFinish: true });
+    }
+  };
+
+  const progress = goalWeight && currentBest && goalWeight > exercise.startWeight ? Math.min(100, Math.max(0,
+    ((currentBest - exercise.startWeight) / (goalWeight - exercise.startWeight)) * 100
+  )) : 0;
+
+  return (
+    <div style={{
+      background: isComplete ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.03)",
+      border: `1px solid ${isComplete ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.08)"}`,
+      borderRadius: 16, padding: "18px 20px", transition: "all 0.3s",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: "#f0f0f0" }}>{exercise.name}</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{exercise.muscle} · Goal: {goalWeight} lb</div>
+        </div>
+        {isComplete && <span style={{ color: "#22c55e", fontSize: 20 }}>✓</span>}
+      </div>
+
+      {goalWeight > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: "rgba(255,255,255,0.3)", marginBottom: 3 }}>
+            <span>{exercise.startWeight} lb</span>
+            <span style={{ color: progress >= 100 ? "#22c55e" : "rgba(255,255,255,0.5)" }}>{progress >= 100 ? "🎉 Goal reached!" : `${Math.round(progress)}%`}</span>
+            <span>{goalWeight} lb</span>
+          </div>
+          <div style={{ height: 3, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ width: `${progress}%`, height: "100%", borderRadius: 2, background: progress >= 100 ? "#22c55e" : "linear-gradient(90deg, #818cf8, #a78bfa)", transition: "width 0.4s" }} />
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
+        <div>
+          <label style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", display: "block", marginBottom: 4 }}>Weight (lb)</label>
+          <input type="number" value={entry?.weight ?? ""} onChange={(e) => update("weight", e.target.value ? Number(e.target.value) : "")}
+            placeholder={`${currentBest || exercise.startWeight || "—"}`}
+            style={{ width: 72, padding: "8px 10px", borderRadius: 10, background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", color: "#f0f0f0", fontSize: 15, outline: "none" }}
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: 11, color: "rgba(255,255,255,0.4)", display: "block", marginBottom: 4 }}>Difficulty</label>
+          <DifficultyPicker value={entry?.difficulty} onChange={(v) => update("difficulty", v)} />
+        </div>
+      </div>
+
+      <button onClick={toggleDidntFinish}
+        style={{ background: "none", border: "none", color: entry?.didntFinish ? "#f97316" : "rgba(255,255,255,0.3)", fontSize: 13, cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}>
+        {entry?.didntFinish ? "Mark as completed ✓" : "Didn't finish?"}
+      </button>
+
+      {entry?.didntFinish && (
+        <div style={{ display: "flex", gap: 10, marginTop: 10, alignItems: "center", flexWrap: "wrap", background: "rgba(249,115,22,0.08)", padding: "10px 12px", borderRadius: 10 }}>
+          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>Stopped at set</span>
+          <select value={entry?.stoppedAtSet || ""} onChange={(e) => update("stoppedAtSet", e.target.value ? Number(e.target.value) : "")}
+            style={{ padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#f0f0f0", fontSize: 15, WebkitAppearance: "none", minWidth: 50 }}>
+            <option value="">—</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+          </select>
+          <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)" }}>rep</span>
+          <input type="number" inputMode="numeric" min="1" max="12" value={entry?.stoppedAtRep ?? ""}
+            onChange={(e) => update("stoppedAtRep", e.target.value ? Number(e.target.value) : "")}
+            placeholder="?" style={{ width: 56, padding: "8px 12px", borderRadius: 8, background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)", color: "#f0f0f0", fontSize: 15, outline: "none" }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GoalDashboard({ data }) {
+  const { phase, workouts } = data;
+  if (!phase) return null;
+  const daysLeft = Math.max(0, daysBetween(new Date(), phase.endDate));
+  const daysTotal = daysBetween(phase.startDate, phase.endDate);
+  const timeProgress = Math.min(100, ((daysTotal - daysLeft) / daysTotal) * 100);
+  const goalStats = phase.goals.map((g) => {
+    const ex = EXERCISES.find((e) => e.id === g.exerciseId);
+    const currentWeight = getCurrentWeight(workouts, g.exerciseId, g.startWeight);
+    const progress = g.goalWeight > g.startWeight ? Math.min(100, Math.max(0, ((currentWeight - g.startWeight) / (g.goalWeight - g.startWeight)) * 100)) : 0;
+    return { ...g, ex, currentWeight, progress };
+  });
+  const avgProgress = goalStats.reduce((s, g) => s + g.progress, 0) / goalStats.length;
+  const goalsReached = goalStats.filter((g) => g.progress >= 100).length;
+
+  return (
+    <div>
+      <div style={{ background: "linear-gradient(135deg, rgba(129,140,248,0.12), rgba(167,139,250,0.08))", border: "1px solid rgba(129,140,248,0.2)", borderRadius: 20, padding: 24, marginBottom: 20 }}>
+        <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 4 }}>{phase.name}</div>
+        <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 16 }}>{daysLeft} days remaining · {goalsReached}/{goalStats.length} goals reached</div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>
+            <span>Overall strength progress</span><span style={{ color: "#818cf8", fontWeight: 600 }}>{Math.round(avgProgress)}%</span>
+          </div>
+          <div style={{ height: 8, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ width: `${avgProgress}%`, height: "100%", borderRadius: 4, background: "linear-gradient(90deg, #818cf8, #a78bfa)", transition: "width 0.5s" }} />
+          </div>
+        </div>
+        <div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "rgba(255,255,255,0.5)", marginBottom: 4 }}>
+            <span>Time elapsed</span><span>{Math.round(timeProgress)}%</span>
+          </div>
+          <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+            <div style={{ width: `${timeProgress}%`, height: "100%", borderRadius: 2, background: avgProgress >= timeProgress ? "#22c55e" : "#f97316" }} />
+          </div>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>{avgProgress >= timeProgress ? "✅ You're ahead of pace!" : "📈 A little behind — keep pushing!"}</div>
+        </div>
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Exercise Goals</div>
+      {goalStats.map((g) => (
+        <div key={g.exerciseId} style={{ background: "rgba(255,255,255,0.03)", border: `1px solid ${g.progress >= 100 ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.08)"}`, borderRadius: 14, padding: "14px 18px", marginBottom: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+            <div><span style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0" }}>{g.ex.name}</span><span style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginLeft: 8 }}>{g.ex.muscle}</span></div>
+            {g.progress >= 100 && <span style={{ fontSize: 16 }}>🎉</span>}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", width: 40 }}>{g.startWeight}</span>
+            <div style={{ flex: 1, height: 6, borderRadius: 3, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+              <div style={{ width: `${g.progress}%`, height: "100%", borderRadius: 3, background: g.progress >= 100 ? "#22c55e" : g.progress >= timeProgress ? "linear-gradient(90deg, #818cf8, #a78bfa)" : "#f97316", transition: "width 0.4s" }} />
+            </div>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", width: 40, textAlign: "right" }}>{g.goalWeight}</span>
+          </div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", marginTop: 6 }}>
+            Currently at <strong style={{ color: "#f0f0f0" }}>{g.currentWeight} lb</strong>{g.progress < 100 && <span> · {g.goalWeight - g.currentWeight} lb to go</span>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProgressChart({ workouts, exerciseId, goalWeight }) {
+  const ex = EXERCISES.find((e) => e.id === exerciseId);
+  const chartData = workouts.filter((w) => w.entries?.some((e) => e.exerciseId === exerciseId && e.weight))
+    .map((w) => { const e = w.entries.find((e) => e.exerciseId === exerciseId); return { date: w.date, weight: e.weight, difficulty: e.difficulty }; }).slice(-12);
+  if (chartData.length < 2) return <div style={{ color: "rgba(255,255,255,0.3)", fontSize: 13, textAlign: "center", padding: 20 }}>Need 2+ workouts for {ex.name}</div>;
+  const allWeights = [...chartData.map((d) => d.weight), goalWeight].filter(Boolean);
+  const maxW = Math.max(...allWeights), minW = Math.min(...allWeights), range = maxW - minW || 10;
+  const h = 130, w = Math.min(chartData.length * 50, 500);
+  const pts = chartData.map((d, i) => ({ x: (i / (chartData.length - 1)) * (w - 40) + 20, y: h - 25 - ((d.weight - minW) / range) * (h - 50), ...d }));
+  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const goalY = goalWeight ? h - 25 - ((goalWeight - minW) / range) * (h - 50) : null;
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0" }}>{ex.name}</div>
+        {goalWeight && <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>Goal: {goalWeight} lb</div>}
+      </div>
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", maxWidth: w }}>
+        {goalY != null && goalY >= 0 && goalY <= h && (<><line x1="10" y1={goalY} x2={w-10} y2={goalY} stroke="#22c55e" strokeWidth="1" strokeDasharray="6,4" opacity="0.5" /><text x={w-10} y={goalY-5} textAnchor="end" fill="#22c55e" fontSize="9" opacity="0.7">GOAL</text></>)}
+        <path d={line} fill="none" stroke="#818cf8" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        {pts.map((p, i) => (<g key={i}><circle cx={p.x} cy={p.y} r={5} fill={DIFFICULTY[p.difficulty-1]?.color || "#818cf8"} /><text x={p.x} y={h-2} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize="9">{fmt(p.date)}</text><text x={p.x} y={p.y-10} textAnchor="middle" fill="rgba(255,255,255,0.6)" fontSize="10">{p.weight}</text></g>))}
+      </svg>
+    </div>
+  );
+}
+
+function Summary({ workouts, spinSessions, period }) {
+  const filterFn = period === "week" ? isThisWeek : period === "month" ? isThisMonth : isThisYear;
+  const filtered = workouts.filter((w) => filterFn(w.date));
+  const filteredSpin = spinSessions.filter((s) => filterFn(s.date));
+  const totalVolume = filtered.reduce((sum, w) => sum + (w.entries || []).reduce((s, e) => {
+    if (!e.weight) return s;
+    const reps = e.didntFinish && e.stoppedAtSet && e.stoppedAtRep ? (e.stoppedAtSet - 1) * REPS_DEFAULT + e.stoppedAtRep : SETS_DEFAULT * REPS_DEFAULT;
+    return s + e.weight * reps;
+  }, 0), 0);
+  const muscleGroups = {};
+  filtered.forEach((w) => (w.entries || []).forEach((e) => { const ex = EXERCISES.find((x) => x.id === e.exerciseId); if (ex && e.weight) { if (!muscleGroups[ex.muscle]) muscleGroups[ex.muscle] = []; muscleGroups[ex.muscle].push(e.weight); } }));
+  let streak = 0;
+  const weekStart = (d) => { const dd = new Date(d); dd.setDate(dd.getDate() - dd.getDay()); dd.setHours(0,0,0,0); return dd.getTime(); };
+  const weeks = new Set(workouts.map((w) => weekStart(w.date)));
+  let checkWeek = new Date(); checkWeek.setDate(checkWeek.getDate() - checkWeek.getDay()); checkWeek.setHours(0,0,0,0);
+  while (weeks.has(checkWeek.getTime())) { streak++; checkWeek.setDate(checkWeek.getDate() - 7); }
+  const periodLabel = period === "week" ? "This Week" : period === "month" ? "This Month" : "Year to Date";
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+        {[{ label: "Weight Sessions", value: filtered.length, sub: periodLabel }, { label: "Spin Classes", value: filteredSpin.length, sub: periodLabel }, { label: "Total Volume", value: totalVolume > 1000 ? `${(totalVolume/1000).toFixed(1)}k` : totalVolume, sub: "lbs lifted" }, { label: "Weekly Streak", value: streak, sub: streak === 1 ? "week" : "weeks" }].map((s, i) => (
+          <div key={i} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 14, padding: "16px 18px", textAlign: "center" }}>
+            <div style={{ fontSize: 28, fontWeight: 700, color: "#818cf8" }}>{s.value}</div>
+            <div style={{ fontSize: 13, color: "#f0f0f0", marginTop: 2 }}>{s.label}</div>
+            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)" }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+      {Object.keys(muscleGroups).length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0", marginBottom: 10 }}>Muscle Group Activity</div>
+          {Object.entries(muscleGroups).map(([group, weights]) => (
+            <div key={group} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <div style={{ width: 80, fontSize: 13, color: "rgba(255,255,255,0.6)" }}>{group}</div>
+              <div style={{ flex: 1, height: 8, borderRadius: 4, background: "rgba(255,255,255,0.06)", overflow: "hidden" }}>
+                <div style={{ width: `${Math.min(100, (weights.length / (filtered.length * 3)) * 100)}%`, height: "100%", borderRadius: 4, background: "linear-gradient(90deg, #818cf8, #a78bfa)" }} />
+              </div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.4)", width: 60, textAlign: "right" }}>{weights.length} sets</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main App ────────────────────────────────────────────────────────────────
+function WorkoutTracker() {
+  const [data, setData] = useState(defaultData());
+  const [view, setView] = useState("home");
+  const [entries, setEntries] = useState({});
+  const [coachMessage, setCoachMessage] = useState("");
+  const [summaryPeriod, setSummaryPeriod] = useState("week");
+  const [selectedExercise, setSelectedExercise] = useState(EXERCISES[0].id);
+  const [loaded, setLoaded] = useState(false);
+  const [savingWorkout, setSavingWorkout] = useState(false);
+  const [showNewPhase, setShowNewPhase] = useState(false);
+  const [nextSessionTips, setNextSessionTips] = useState("");
+  const [editingWorkoutId, setEditingWorkoutId] = useState(null);
+  const [showStretches, setShowStretches] = useState(null);
+  const [importStatus, setImportStatus] = useState("");
+  const fileInputRef = useRef(null);
+  const scrollRef = useRef(null);
+
+  useEffect(() => { loadData().then((d) => { setData(d); setLoaded(true); }); }, []);
+
+  const startWorkout = () => {
+    setView("workout");
+    setEditingWorkoutId(null);
+    const last = data.workouts[data.workouts.length - 1];
+    const prefilled = {};
+    EXERCISES.forEach((ex) => {
+      const lastEntry = last?.entries?.find((e) => e.exerciseId === ex.id);
+      prefilled[ex.id] = { exerciseId: ex.id, weight: lastEntry?.weight ?? ex.startWeight ?? "", difficulty: null, didntFinish: false, stoppedAtSet: "", stoppedAtRep: "" };
+    });
+    setEntries(prefilled);
+    setCoachMessage(getSmartCoaching(data, "start_workout"));
+    setNextSessionTips("");
+  };
+
+  const editWorkout = (workout) => {
+    setView("workout");
+    setEditingWorkoutId(workout.id);
+    const prefilled = {};
+    EXERCISES.forEach((ex) => {
+      const existingEntry = workout.entries?.find((e) => e.exerciseId === ex.id);
+      prefilled[ex.id] = existingEntry ? { ...existingEntry } : { exerciseId: ex.id, weight: "", difficulty: null, didntFinish: false, stoppedAtSet: "", stoppedAtRep: "" };
+    });
+    setEntries(prefilled);
+    setCoachMessage("");
+    setNextSessionTips("");
+  };
+
+  const getOnDemandAdvice = () => {
+    setCoachMessage(getSmartCoaching(data, "on_demand"));
+  };
+
+  const saveWorkout = async () => {
+    setSavingWorkout(true);
+    const entryList = Object.values(entries).filter((e) => e.weight || e.difficulty);
+    let newData;
+
+    if (editingWorkoutId) {
+      newData = { ...data, workouts: data.workouts.map((w) => w.id === editingWorkoutId ? { ...w, entries: entryList } : w) };
+    } else {
+      const workout = { id: Date.now(), date: new Date().toISOString(), entries: entryList };
+      newData = { ...data, workouts: [...data.workouts, workout] };
+    }
+
+    await saveData(newData);
+    setData(newData);
+
+    const tips = getSmartCoaching(newData, "next_session");
+    setNextSessionTips(tips);
+    setEntries({});
+    setEditingWorkoutId(null);
+    setView("post_workout");
+    setSavingWorkout(false);
+  };
+
+  const logSpin = async () => {
+    const session = { id: Date.now(), date: new Date().toISOString() };
+    const newData = { ...data, spinSessions: [...data.spinSessions, session] };
+    await saveData(newData);
+    setData(newData);
+  };
+
+  const exportData = () => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ironlog-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const importData = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (imported.workouts && Array.isArray(imported.workouts)) {
+          if (!imported.phase) imported.phase = defaultData().phase;
+          if (!imported.spinSessions) imported.spinSessions = [];
+          await saveData(imported);
+          setData(imported);
+          setImportStatus("✅ Data imported successfully!");
+        } else {
+          setImportStatus("❌ Invalid file — doesn't look like IronLog data.");
+        }
+      } catch {
+        setImportStatus("❌ Couldn't read file — make sure it's a valid IronLog export.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const startNewPhase = async () => {
+    const phaseNum = (data.phase?.name?.match(/Phase (\d+)/) || [0, 0])[1];
+    const newPhase = {
+      name: `Phase ${Number(phaseNum) + 1} — Next Level`,
+      startDate: new Date().toISOString(),
+      endDate: new Date(Date.now() + 180 * 86400000).toISOString(),
+      goals: EXERCISES.map((ex) => {
+        const current = getCurrentWeight(data.workouts, ex.id, ex.startWeight);
+        const increase = Math.max(10, Math.round((current * 0.5) / 5) * 5);
+        return { exerciseId: ex.id, startWeight: current, goalWeight: current + increase };
+      }),
+    };
+    const newData = { ...data, phase: newPhase };
+    await saveData(newData);
+    setData(newData);
+    setShowNewPhase(false);
+  };
+
+  const updateEntry = (exerciseId, entry) => setEntries((prev) => ({ ...prev, [exerciseId]: entry }));
+  const completedCount = Object.values(entries).filter((e) => e.weight && e.difficulty).length;
+  const lastWorkout = data.workouts[data.workouts.length - 1];
+  const daysSinceLast = lastWorkout ? daysBetween(lastWorkout.date, new Date()) : null;
+
+  if (!loaded) return <div style={{ minHeight: "100vh", background: "#0a0a0f", display: "flex", alignItems: "center", justifyContent: "center" }}><div style={{ color: "rgba(255,255,255,0.4)", fontSize: 16 }}>Loading...</div></div>;
+
+  return (
+    <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 100%)", color: "#f0f0f0", fontFamily: "'SF Pro Display', -apple-system, 'Segoe UI', sans-serif", maxWidth: 480, margin: "0 auto" }}>
+      {/* Header */}
+      <div style={{ padding: "20px 24px 12px", background: "rgba(10,10,15,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, zIndex: 100 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {view !== "home" ? (
+            <button onClick={() => setView("home")} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 15, cursor: "pointer", padding: 0 }}>← Back</button>
+          ) : (
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "linear-gradient(135deg, #818cf8, #6366f1)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 2px 12px rgba(99,102,241,0.35)" }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="2" y="9" width="4" height="6" rx="1" fill="#fff" opacity="0.9"/><rect x="18" y="9" width="4" height="6" rx="1" fill="#fff" opacity="0.9"/><rect x="6" y="7" width="3" height="10" rx="1" fill="#fff"/><rect x="15" y="7" width="3" height="10" rx="1" fill="#fff"/><rect x="9" y="10.5" width="6" height="3" rx="0.75" fill="#fff" opacity="0.85"/></svg>
+              </div>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 1 }}><span style={{ color: "#818cf8" }}>IRON</span><span style={{ color: "rgba(255,255,255,0.9)" }}>LOG</span></div>
+                <div style={{ fontSize: 9, letterSpacing: "0.15em", color: "rgba(255,255,255,0.3)", fontWeight: 500, marginTop: 1 }}>TRACK · GROW · REPEAT</div>
+              </div>
+            </div>
+          )}
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)" }}>{data.workouts.length} workout{data.workouts.length !== 1 ? "s" : ""} logged</div>
+        </div>
+      </div>
+
+      <div ref={scrollRef} style={{ padding: "20px 20px 100px" }}>
+
+        {/* HOME */}
+        {view === "home" && (
+          <div>
+            <div style={{ background: "linear-gradient(135deg, rgba(129,140,248,0.12), rgba(167,139,250,0.08))", border: "1px solid rgba(129,140,248,0.2)", borderRadius: 20, padding: 24, marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>
+                {daysSinceLast === null ? "Welcome! Ready for your first workout?" : daysSinceLast === 0 ? "Great work today! 🎉" : daysSinceLast === 1 ? "Back at it! Yesterday was solid." : daysSinceLast <= 3 ? `${daysSinceLast} days since last session — right on track.` : daysSinceLast <= 7 ? `${daysSinceLast} days ago — time to get back in there!` : `It's been ${daysSinceLast} days — let's ease back in!`}
+              </div>
+              {lastWorkout && <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)" }}>Last workout: {fmtFull(lastWorkout.date)}</div>}
+              {data.phase && <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 4 }}>{data.phase.name} · {Math.max(0, daysBetween(new Date(), data.phase.endDate))} days left</div>}
+            </div>
+
+            <button onClick={startWorkout} style={{ width: "100%", padding: "18px 24px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #818cf8, #6366f1)", color: "#fff", fontSize: 17, fontWeight: 600, cursor: "pointer", marginBottom: 12, boxShadow: "0 4px 24px rgba(99,102,241,0.3)" }}>🏋️ Start Workout</button>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 20 }}>
+              <button onClick={logSpin} style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.04)", color: "#f0f0f0", fontSize: 14, cursor: "pointer", fontWeight: 500 }}>🚴 Log Spin Class</button>
+              <button onClick={getOnDemandAdvice} style={{ padding: "14px 16px", borderRadius: 14, border: "1px solid rgba(129,140,248,0.2)", background: "rgba(129,140,248,0.08)", color: "#a5b4fc", fontSize: 14, cursor: "pointer", fontWeight: 500 }}>🤖 Ask Coach</button>
+            </div>
+
+            {coachMessage && (
+              <div style={{ background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.15)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8", marginBottom: 8 }}>🤖 AI Coach</div>
+                <div style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(255,255,255,0.75)", whiteSpace: "pre-wrap" }}>{coachMessage}</div>
+              </div>
+            )}
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 1fr", gap: 8 }}>
+              {[{ label: "Goals", icon: "🎯", v: "goals" }, { label: "History", icon: "📋", v: "history" }, { label: "Progress", icon: "📈", v: "progress" }, { label: "Summary", icon: "📊", v: "summary" }, { label: "Data", icon: "💾", v: "settings" }].map((n) => (
+                <button key={n.v} onClick={() => setView(n.v)} style={{ padding: "16px 8px", borderRadius: 14, border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.03)", color: "#f0f0f0", fontSize: 11, cursor: "pointer", textAlign: "center" }}>
+                  <div style={{ fontSize: 22, marginBottom: 4 }}>{n.icon}</div>{n.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* POST WORKOUT */}
+        {view === "post_workout" && (
+          <div>
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <div style={{ fontSize: 48, marginBottom: 12 }}>💪</div>
+              <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 4 }}>{editingWorkoutId ? "Workout Updated!" : "Workout Saved!"}</div>
+              <div style={{ fontSize: 14, color: "rgba(255,255,255,0.5)" }}>Great job getting it done.</div>
+            </div>
+            {nextSessionTips && (
+              <div style={{ background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.15)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "#818cf8", marginBottom: 10 }}>👀 Preview: Next Session</div>
+                <div style={{ fontSize: 14, lineHeight: 1.7, color: "rgba(255,255,255,0.75)", whiteSpace: "pre-wrap" }}>{nextSessionTips}</div>
+              </div>
+            )}
+            <button onClick={() => { setView("home"); setNextSessionTips(""); setCoachMessage(""); }} style={{ width: "100%", padding: "16px 24px", borderRadius: 16, border: "none", background: "linear-gradient(135deg, #818cf8, #6366f1)", color: "#fff", fontSize: 16, fontWeight: 600, cursor: "pointer" }}>Done</button>
+          </div>
+        )}
+
+        {/* WORKOUT */}
+        {view === "workout" && (
+          <div>
+            {coachMessage && (
+              <div style={{ background: "rgba(129,140,248,0.06)", border: "1px solid rgba(129,140,248,0.15)", borderRadius: 16, padding: 18, marginBottom: 20 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#818cf8", marginBottom: 6 }}>{editingWorkoutId ? "📝 Editing Past Workout" : "🤖 Today's Plan"}</div>
+                <div style={{ fontSize: 14, lineHeight: 1.6, color: "rgba(255,255,255,0.75)", whiteSpace: "pre-wrap" }}>{editingWorkoutId ? "Update any exercises below and save when done." : coachMessage}</div>
+              </div>
+            )}
+
+            {/* Stretches */}
+            {!editingWorkoutId && (
+              <div style={{ marginBottom: 20 }}>
+                <button onClick={() => setShowStretches((p) => p === "pre" ? null : "pre")} style={{
+                  width: "100%", padding: "14px 18px", borderRadius: 14, border: "1px solid rgba(234,179,8,0.2)",
+                  background: showStretches === "pre" ? "rgba(234,179,8,0.1)" : "rgba(234,179,8,0.04)",
+                  color: "#eab308", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left",
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}>
+                  <span>🧘 Pre-Workout Stretches</span>
+                  <span style={{ fontSize: 12, color: "rgba(234,179,8,0.6)" }}>{showStretches === "pre" ? "Hide ▲" : "Show ▼"}</span>
+                </button>
+                {showStretches === "pre" && (
+                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {STRETCHES.pre.map((s, i) => (
+                      <div key={i} style={{
+                        background: s.area.includes("Arm") ? "rgba(234,179,8,0.06)" : "rgba(255,255,255,0.03)",
+                        border: `1px solid ${s.area.includes("Arm") ? "rgba(234,179,8,0.15)" : "rgba(255,255,255,0.06)"}`,
+                        borderRadius: 12, padding: "12px 16px",
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0" }}>
+                            {s.area.includes("Arm") && <span style={{ color: "#eab308", marginRight: 6 }}>★</span>}
+                            {s.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap" }}>{s.duration}</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{s.desc}</div>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center", padding: 4 }}>★ = especially important for arm tightness</div>
+                  </div>
+                )}
+
+                <button onClick={() => setShowStretches((p) => p === "post" ? null : "post")} style={{
+                  width: "100%", padding: "14px 18px", borderRadius: 14, border: "1px solid rgba(129,140,248,0.15)",
+                  background: showStretches === "post" ? "rgba(129,140,248,0.08)" : "rgba(129,140,248,0.03)",
+                  color: "#a5b4fc", fontSize: 14, fontWeight: 600, cursor: "pointer", textAlign: "left",
+                  display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8,
+                }}>
+                  <span>🧊 Post-Workout Stretches</span>
+                  <span style={{ fontSize: 12, color: "rgba(129,140,248,0.5)" }}>{showStretches === "post" ? "Hide ▲" : "Show ▼"}</span>
+                </button>
+                {showStretches === "post" && (
+                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                    {STRETCHES.post.map((s, i) => (
+                      <div key={i} style={{
+                        background: s.area.includes("Arm") ? "rgba(129,140,248,0.06)" : "rgba(255,255,255,0.03)",
+                        border: `1px solid ${s.area.includes("Arm") ? "rgba(129,140,248,0.15)" : "rgba(255,255,255,0.06)"}`,
+                        borderRadius: 12, padding: "12px 16px",
+                      }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <div style={{ fontSize: 14, fontWeight: 600, color: "#f0f0f0" }}>
+                            {s.area.includes("Arm") && <span style={{ color: "#a5b4fc", marginRight: 6 }}>★</span>}
+                            {s.name}
+                          </div>
+                          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.35)", whiteSpace: "nowrap" }}>{s.duration}</div>
+                        </div>
+                        <div style={{ fontSize: 12, color: "rgba(255,255,255,0.5)", lineHeight: 1.5 }}>{s.desc}</div>
+                      </div>
+                    ))}
+                    <div style={{ fontSize: 11, color: "rgba(255,255,255,0.3)", textAlign: "center", padding: 4 }}>★ = focus on these if your arms feel tight</div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 16, fontWeight: 600 }}>{editingWorkoutId ? "Edit Exercises" : "Log Exercises"}</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{completedCount}/{EXERCISES.length} done</div>
+            </div>
+
+            <div style={{ height: 4, borderRadius: 2, background: "rgba(255,255,255,0.06)", marginBottom: 20, overflow: "hidden" }}>
+              <div style={{ width: `${(completedCount / EXERCISES.length) * 100}%`, height: "100%", borderRadius: 2, background: "linear-gradient(90deg, #818cf8, #22c55e)", transition: "width 0.4s ease" }} />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {EXERCISES.map((ex) => {
+                const goal = data.phase?.goals?.find((g) => g.exerciseId === ex.id);
+                return (
+                  <ExerciseCard key={ex.id} exercise={ex} entry={entries[ex.id]}
+                    onChange={(e) => updateEntry(ex.id, e)}
+                    isComplete={!!(entries[ex.id]?.weight && entries[ex.id]?.difficulty)}
+                    goalWeight={goal?.goalWeight}
+                    currentBest={getCurrentWeight(data.workouts, ex.id, ex.startWeight)}
+                  />
+                );
+              })}
+            </div>
+
+            <button onClick={saveWorkout} disabled={completedCount === 0 || savingWorkout} style={{
+              width: "100%", padding: "18px 24px", borderRadius: 16, border: "none",
+              background: completedCount > 0 ? "linear-gradient(135deg, #22c55e, #16a34a)" : "rgba(255,255,255,0.06)",
+              color: completedCount > 0 ? "#fff" : "rgba(255,255,255,0.2)",
+              fontSize: 17, fontWeight: 600, cursor: completedCount > 0 ? "pointer" : "default", marginTop: 20,
+              boxShadow: completedCount > 0 ? "0 4px 24px rgba(34,197,94,0.3)" : "none",
+            }}>{savingWorkout ? "Saving..." : editingWorkoutId ? `Update Workout (${completedCount} exercises)` : `Save Workout (${completedCount} exercises)`}</button>
+          </div>
+        )}
+
+        {/* GOALS */}
+        {view === "goals" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 600 }}>6-Month Goals</div>
+              <button onClick={() => setShowNewPhase(true)} style={{ padding: "8px 16px", borderRadius: 10, border: "1px solid rgba(129,140,248,0.3)", background: "rgba(129,140,248,0.1)", color: "#a5b4fc", fontSize: 13, cursor: "pointer" }}>New Phase</button>
+            </div>
+            {showNewPhase && (
+              <div style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 16, padding: 20, marginBottom: 20 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Start a New Phase?</div>
+                <div style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", marginBottom: 16, lineHeight: 1.5 }}>This will create new goals based on your current weights. Your workout history stays preserved.</div>
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button onClick={startNewPhase} style={{ padding: "10px 20px", borderRadius: 10, border: "none", background: "#818cf8", color: "#fff", fontSize: 14, cursor: "pointer" }}>Start New Phase</button>
+                  <button onClick={() => setShowNewPhase(false)} style={{ padding: "10px 20px", borderRadius: 10, border: "1px solid rgba(255,255,255,0.1)", background: "transparent", color: "rgba(255,255,255,0.6)", fontSize: 14, cursor: "pointer" }}>Cancel</button>
+                </div>
+              </div>
+            )}
+            <GoalDashboard data={data} />
+          </div>
+        )}
+
+        {/* HISTORY */}
+        {view === "history" && (
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Workout History</div>
+            {data.workouts.length === 0 ? (
+              <div style={{ textAlign: "center", color: "rgba(255,255,255,0.3)", padding: 40 }}>No workouts yet — start your first one!</div>
+            ) : (
+              [...data.workouts].reverse().map((w) => (
+                <div key={w.id} onClick={() => editWorkout(w)} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: "16px 20px", marginBottom: 12, cursor: "pointer", transition: "border-color 0.2s" }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = "rgba(129,140,248,0.3)"}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(255,255,255,0.08)"}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
+                    <div style={{ fontWeight: 600, fontSize: 15 }}>{fmtFull(w.date)}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ fontSize: 13, color: "rgba(255,255,255,0.4)" }}>{w.entries?.length || 0} exercises</span>
+                      <span style={{ fontSize: 12, color: "#818cf8" }}>✏️</span>
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    {(w.entries || []).map((e) => {
+                      const ex = EXERCISES.find((x) => x.id === e.exerciseId);
+                      const diff = DIFFICULTY[e.difficulty - 1];
+                      return (
+                        <div key={e.exerciseId} style={{ background: "rgba(255,255,255,0.04)", borderRadius: 8, padding: "4px 10px", fontSize: 12, color: "rgba(255,255,255,0.6)", border: `1px solid ${diff?.color || "rgba(255,255,255,0.08)"}33` }}>
+                          {ex?.name?.split(" ")[0]} {e.weight}lb {diff?.emoji}{e.didntFinish && <span style={{ color: "#f97316" }}> ⚠</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
+            {data.spinSessions.length > 0 && (
+              <>
+                <div style={{ fontSize: 16, fontWeight: 600, marginTop: 24, marginBottom: 12 }}>Spin Classes</div>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                  {data.spinSessions.map((s) => (<div key={s.id} style={{ background: "rgba(129,140,248,0.08)", borderRadius: 10, padding: "8px 14px", fontSize: 13, color: "#a5b4fc" }}>🚴 {fmtFull(s.date)}</div>))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* PROGRESS */}
+        {view === "progress" && (
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 6 }}>Progress Charts</div>
+            <div style={{ fontSize: 13, color: "rgba(255,255,255,0.4)", marginBottom: 16 }}>Weight over time · dashed line = goal</div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginBottom: 20 }}>
+              {EXERCISES.map((ex) => (<button key={ex.id} onClick={() => setSelectedExercise(ex.id)} style={{ padding: "6px 14px", borderRadius: 20, border: "none", fontSize: 13, cursor: "pointer", background: selectedExercise === ex.id ? "#818cf8" : "rgba(255,255,255,0.06)", color: selectedExercise === ex.id ? "#fff" : "rgba(255,255,255,0.5)" }}>{ex.name.split(" ").slice(0,2).join(" ")}</button>))}
+            </div>
+            <ProgressChart workouts={data.workouts} exerciseId={selectedExercise} goalWeight={data.phase?.goals?.find((g) => g.exerciseId === selectedExercise)?.goalWeight} />
+            <div style={{ marginTop: 24, fontSize: 15, fontWeight: 600, marginBottom: 12 }}>All Exercises</div>
+            {EXERCISES.map((ex) => (<ProgressChart key={ex.id} workouts={data.workouts} exerciseId={ex.id} goalWeight={data.phase?.goals?.find((g) => g.exerciseId === ex.id)?.goalWeight} />))}
+          </div>
+        )}
+
+        {/* SUMMARY */}
+        {view === "summary" && (
+          <div>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 18, fontWeight: 600 }}>Summary</div>
+              <div style={{ display: "flex", gap: 4 }}>
+                {["week", "month", "ytd"].map((p) => (<button key={p} onClick={() => setSummaryPeriod(p)} style={{ padding: "6px 14px", borderRadius: 20, border: "none", fontSize: 13, cursor: "pointer", background: summaryPeriod === p ? "#818cf8" : "rgba(255,255,255,0.06)", color: summaryPeriod === p ? "#fff" : "rgba(255,255,255,0.5)" }}>{p === "ytd" ? "YTD" : p.charAt(0).toUpperCase() + p.slice(1)}</button>))}
+              </div>
+            </div>
+            <Summary workouts={data.workouts} spinSessions={data.spinSessions} period={summaryPeriod} />
+          </div>
+        )}
+
+        {/* SETTINGS / DATA */}
+        {view === "settings" && (
+          <div>
+            <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 20 }}>Data Management</div>
+
+            <input type="file" ref={fileInputRef} accept=".json" onChange={importData} style={{ display: "none" }} />
+
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>📤 Export Data</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 14, lineHeight: 1.5 }}>
+                Download all your workout data as a file. Use this before requesting app updates so you don't lose anything.
+              </div>
+              <button onClick={exportData} style={{
+                padding: "12px 24px", borderRadius: 12, border: "none",
+                background: "linear-gradient(135deg, #818cf8, #6366f1)", color: "#fff",
+                fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}>Download Backup</button>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.3)", marginTop: 8 }}>
+                {data.workouts.length} workout{data.workouts.length !== 1 ? "s" : ""} · {data.spinSessions.length} spin session{data.spinSessions.length !== 1 ? "s" : ""}
+              </div>
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 16, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 6 }}>📥 Import Data</div>
+              <div style={{ fontSize: 13, color: "rgba(255,255,255,0.5)", marginBottom: 14, lineHeight: 1.5 }}>
+                Load a previously exported backup. This will replace all current data with the imported file.
+              </div>
+              <button onClick={() => fileInputRef.current?.click()} style={{
+                padding: "12px 24px", borderRadius: 12,
+                border: "1px solid rgba(129,140,248,0.3)", background: "rgba(129,140,248,0.1)",
+                color: "#a5b4fc", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}>Choose File to Import</button>
+              {importStatus && (
+                <div style={{ fontSize: 13, marginTop: 10, color: importStatus.startsWith("✅") ? "#22c55e" : "#ef4444" }}>{importStatus}</div>
+              )}
+            </div>
+
+            <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>How to use this</div>
+              <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", lineHeight: 1.6 }}>
+                1. Before asking for app changes, tap "Download Backup"{"\n"}
+                2. Share the backup file with Claude along with your change request{"\n"}
+                3. After getting the updated app, come here and tap "Import" to load your data back in
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(WorkoutTracker));
+</script>
+</body>
+</html>
