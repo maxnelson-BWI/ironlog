@@ -32,16 +32,16 @@ const { useState, useEffect, useRef } = React;
 
 
 const EXERCISES = [
-  { id: "ab_crunch", name: "Abdominal Crunch", muscle: "Core", startWeight: 40, goalWeight: 70 },
-  { id: "lower_back", name: "Lower Back", muscle: "Core", startWeight: 80, goalWeight: 130 },
-  { id: "bicep_curl", name: "Biceps Curl", muscle: "Arms", startWeight: 30, goalWeight: 50 },
-  { id: "tricep_press", name: "Triceps Press", muscle: "Arms", startWeight: 60, goalWeight: 100 },
-  { id: "vert_traction", name: "Vertical Traction", muscle: "Back", startWeight: 80, goalWeight: 130 },
-  { id: "shoulder_press", name: "Shoulder Press", muscle: "Shoulders", startWeight: 10, goalWeight: 25 },
-  { id: "abductor_out", name: "Abductor (Out)", muscle: "Legs", startWeight: 65, goalWeight: 100 },
-  { id: "adductor_in", name: "Adductor (In)", muscle: "Legs", startWeight: 40, goalWeight: 70 },
-  { id: "chest_press", name: "Chest Press", muscle: "Chest", startWeight: 30, goalWeight: 55 },
-  { id: "leg_press", name: "Leg Press", muscle: "Legs", startWeight: 100, goalWeight: 180 },
+  { id: "ab_crunch", name: "Abdominal Crunch", muscle: "Core", startWeight: 40, goalWeight: 70, seat: null },
+  { id: "lower_back", name: "Lower Back", muscle: "Core", startWeight: 80, goalWeight: 130, seat: "S 3-3" },
+  { id: "bicep_curl", name: "Biceps Curl", muscle: "Arms", startWeight: 30, goalWeight: 50, seat: "S 2" },
+  { id: "tricep_press", name: "Triceps Press", muscle: "Arms", startWeight: 60, goalWeight: 100, seat: "S 5" },
+  { id: "vert_traction", name: "Vertical Traction", muscle: "Back", startWeight: 80, goalWeight: 130, seat: "S 7" },
+  { id: "shoulder_press", name: "Shoulder Press", muscle: "Shoulders", startWeight: 10, goalWeight: 25, seat: "S 7" },
+  { id: "abductor_out", name: "Abductor (Out)", muscle: "Legs", startWeight: 65, goalWeight: 100, seat: "S 1" },
+  { id: "adductor_in", name: "Adductor (In)", muscle: "Legs", startWeight: 40, goalWeight: 70, seat: "S 7" },
+  { id: "chest_press", name: "Chest Press", muscle: "Chest", startWeight: 30, goalWeight: 55, seat: "S 5" },
+  { id: "leg_press", name: "Leg Press", muscle: "Legs", startWeight: 100, goalWeight: 180, seat: "S 2" },
 ];
 
 const DIFFICULTY = [
@@ -269,7 +269,7 @@ function ExerciseCard({ exercise, entry, onChange, isComplete, goalWeight, curre
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: 16, fontWeight: 600, color: "#f0f0f0" }}>{exercise.name}</div>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{exercise.muscle} · Goal: {goalWeight} lb</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.35)", marginTop: 2 }}>{exercise.muscle} · Goal: {goalWeight} lb{exercise.seat && <span style={{ color: "rgba(129,140,248,0.7)" }}> · Seat: {exercise.seat}</span>}</div>
         </div>
         {isComplete && <span style={{ color: "#22c55e", fontSize: 20 }}>✓</span>}
       </div>
