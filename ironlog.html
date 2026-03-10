@@ -18,6 +18,8 @@
   input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   input[type=number] { -moz-appearance: textfield; }
   option { background: #1a1a2e; color: #f0f0f0; }
+  #root { padding-top: max(env(safe-area-inset-top), 44px); }
+  @supports not (padding-top: env(safe-area-inset-top)) { #root { padding-top: 44px; } }
 </style>
 </head>
 <body>
@@ -601,7 +603,7 @@ function WorkoutTracker() {
   return (
     <div style={{ minHeight: "100vh", background: "linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 100%)", color: "#f0f0f0", fontFamily: "'SF Pro Display', -apple-system, 'Segoe UI', sans-serif", maxWidth: 480, margin: "0 auto" }}>
       {/* Header */}
-      <div style={{ padding: "20px 24px 12px", background: "rgba(10,10,15,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, zIndex: 100 }}>
+      <div style={{ padding: "12px 24px 12px", background: "rgba(10,10,15,0.95)", backdropFilter: "blur(20px)", borderBottom: "1px solid rgba(255,255,255,0.06)", position: "sticky", top: 0, zIndex: 100 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           {view !== "home" ? (
             <button onClick={() => setView("home")} style={{ background: "none", border: "none", color: "#818cf8", fontSize: 15, cursor: "pointer", padding: 0 }}>← Back</button>
